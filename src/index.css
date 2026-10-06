@@ -1,0 +1,109 @@
+@import 'tailwindcss';
+
+:root {
+  --nss-red: #b11d2e;
+  --nss-red-deep: #871923;
+  --charcoal: #171c22;
+  --ink: #141414;
+  --paper: #f3efe8;
+  --paper-strong: #e7e0d6;
+  --steel: #6c6864;
+  --line: rgba(23, 28, 34, 0.12);
+  --panel: #ffffff;
+  --muted: #5f5c59;
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: var(--ink);
+  background: var(--paper);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+#root {
+  min-height: 100vh;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+a {
+  text-decoration: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button:focus-visible,
+a:focus-visible {
+  outline: 3px solid rgba(177, 29, 46, 0.45);
+  outline-offset: 3px;
+}
+
+::selection {
+  background: rgba(177, 29, 46, 0.18);
+}
+
+.institutional-shell {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.3), rgba(243, 239, 232, 0.9));
+}
+
+.editorial-kicker {
+  margin: 0 0 0.75rem;
+  color: var(--nss-red);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+.editorial-heading {
+  margin: 0;
+  color: var(--charcoal);
+  font-size: clamp(2.25rem, 4vw, 4.25rem);
+  line-height: 0.98;
+  letter-spacing: -0.06em;
+  font-weight: 800;
+}
+
+.editorial-subheading {
+  margin: 0;
+  color: var(--charcoal);
+  font-size: clamp(1.65rem, 2vw, 2.5rem);
+  line-height: 1.05;
+  letter-spacing: -0.05em;
+  font-weight: 800;
+}
+
+.editorial-copy {
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1.8;
+}
+
+.photo-slot {
+  position: relative;
+  overflow: hidden;
+  background-color: #d7d2cc;
+  border: 1px solid var(--line);
+}
