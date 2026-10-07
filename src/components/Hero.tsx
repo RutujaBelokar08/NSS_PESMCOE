@@ -21,7 +21,7 @@ export function Hero() {
               National Service Scheme
             </p>
             <h1 className="editorial-heading text-white">
-              Not Me,
+              <span className="text-[#b11d2e]">Not Me,</span>
               <span className="mt-2 block text-[#f4efe8] [text-shadow:0_2px_18px_rgba(0,0,0,0.55)]">But You.</span>
             </h1>
             <p className="mt-6 max-w-xl text-base leading-7 text-[#e8e2dc] sm:text-lg">
