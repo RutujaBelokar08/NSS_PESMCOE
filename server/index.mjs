@@ -8,7 +8,10 @@ const root = process.cwd()
 const url = process.env.VITE_SUPABASE_URL
 const publicKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY
 const secret = process.env.SUPABASE_SECRET_KEY
-const collections = ['team','officers','domains','activities','notices','events','achievements','albums','gallery','stats']
+const officialAdminEmail = 'nss_pesmcoe@moderncoe.edu.in'
+const maintainerAdminEmail = 'rutujabelokar8@gmail.com'
+const authorizedAdminEmails = new Set([officialAdminEmail, maintainerAdminEmail])
+const collections = ['team','developers','officers','domains','activities','notices','events','achievements','albums','gallery','stats']
 const cookieName = 'nss_supabase_session'
 const send = (res, status, data, headers={}) => { res.writeHead(status, { 'content-type':'application/json; charset=utf-8', 'cache-control':'no-store', ...headers }); res.end(JSON.stringify({ success: status < 400, ...data })) }
 const body = async req => { const chunks=[]; let size=0; for await (const chunk of req) { size += chunk.length; if (size > 20_000_000) throw Object.assign(new Error('Request too large.'), { status:413 }); chunks.push(chunk) } return JSON.parse(Buffer.concat(chunks).toString() || '{}') }
@@ -24,43 +27,57 @@ const supa = async (path, { method='GET', token, admin=false, body:payload, head
 }
 const tokenFrom = req => { const part=(req.headers.cookie||'').split(';').map(x=>x.trim()).find(x=>x.startsWith(`${cookieName}=`)); return part ? decodeURIComponent(part.slice(cookieName.length+1)) : '' }
 const userFor = async req => { const token=tokenFrom(req); if(!token) return null; try { return await supa('/auth/v1/user',{token}) } catch { return null } }
-const adminFor = async req => { const user=await userFor(req); if(!user) return null; const profiles=await supa(`/rest/v1/admin_profiles?user_id=eq.${encodeURIComponent(user.id)}&active=eq.true&select=user_id,username`,{token:tokenFrom(req)}); return profiles[0] ? {user,profile:profiles[0]} : null }
+const adminFor = async req => {
+  const user=await userFor(req); if(!user) return null
+  const email=String(user.email||'').toLowerCase()
+  if(!authorizedAdminEmails.has(email))return null
+  const profiles=await supa(`/rest/v1/admin_profiles?user_id=eq.${encodeURIComponent(user.id)}&active=eq.true&select=user_id,username`,{token:tokenFrom(req)})
+  if(!profiles[0])return null
+  return {user,profile:profiles[0],email,role:email===officialAdminEmail?'Official NSS Administrator':'Website Maintainer / Developer'}
+}
 const requireAdmin = async (req,res) => { const admin=await adminFor(req); if(!admin) { send(res,401,{error:'Please log in as an active administrator.'}); return null } return admin }
 const rest = (table, query='') => `/rest/v1/${table}${query ? `?${query}` : ''}`
 const settings = async token => { const rows=await supa(rest('site_settings','select=key,value'),{token}); return Object.fromEntries(rows.map(x=>[x.key,x.value])) }
 const sessionRows = async token => supa(rest('academic_sessions','select=id,label,is_current,active,created_at&order=created_at.desc'),{token})
 const recordsFor = async (token, admin=false, currentSessionId) => {
   const fields='select=id,collection,session_id,data,position,published,active'
-  if(!admin&&!currentSessionId) return Object.fromEntries(collections.map(c=>[c,[]]))
+  if(!admin&&!currentSessionId) {
+    const developerRows=await supa(rest('cms_records',`${fields}&collection=eq.developers&session_id=is.null&published=eq.true&active=eq.true&order=position.asc,id.asc`),{token})
+    return Object.fromEntries(collections.map(c=>[c,c==='developers'?developerRows.map(r=>({...r.data,id:r.id,order:r.position,published:r.published,active:r.active})):[]]))
+  }
   const sessionFilter=admin?'':`&session_id=eq.${encodeURIComponent(currentSessionId)}`
   const publicFilter=admin?'':'&published=eq.true&active=eq.true'
-  const rows=await supa(rest('cms_records',`${fields}${sessionFilter}${publicFilter}&order=position.asc,id.asc`),{token})
-  return Object.fromEntries(collections.map(c=>[c,rows.filter(r=>r.collection===c).map(r=>({...r.data,id:r.id,session:r.session_id,order:r.position,published:r.published,active:r.active}))]))
+  const [rows,developerRows]=await Promise.all([
+    supa(rest('cms_records',`${fields}${sessionFilter}${publicFilter}&order=position.asc,id.asc`),{token}),
+    admin?Promise.resolve([]):supa(rest('cms_records',`${fields}&collection=eq.developers&session_id=is.null&published=eq.true&active=eq.true&order=position.asc,id.asc`),{token})
+  ])
+  const result=Object.fromEntries(collections.map(c=>[c,rows.filter(r=>r.collection===c).map(r=>({...r.data,id:r.id,session:r.session_id,order:r.position,published:r.published,active:r.active}))]))
+  if(!admin)result.developers=developerRows.map(r=>({...r.data,id:r.id,order:r.position,published:r.published,active:r.active}))
+  return result
 }
 const fromRow = r => ({ id:r.id, collection:r.collection, session_id:r.session_id, data:r.data, position:r.position, published:r.published, active:r.active })
+const isPrimaryDeveloper = row => row?.collection === 'developers' && (row?.data?.primary === true || row?.data?.name === 'Rutuja Belokar')
 const headersForSession = req => ({ 'set-cookie':`${cookieName}=${encodeURIComponent(req)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=604800${process.env.NODE_ENV==='production'?'; Secure':''}` })
 
 const server=createServer(async(req,res)=>{
  try {
   const requestUrl=new URL(req.url,'http://localhost'), path=requestUrl.pathname
-  if(req.method==='GET' && path==='/api/setup-status') { const rows=await supa(rest('admin_profiles','select=user_id&limit=1'),{admin:true}); return send(res,200,{needsSetup:rows.length===0}) }
+  if(req.method==='GET' && path==='/api/setup-status') { const rows=await supa(rest('admin_profiles','select=username&active=eq.true'),{admin:true}); const complete=rows.some(r=>authorizedAdminEmails.has(String(r.username||'').toLowerCase())); return send(res,200,{needsSetup:!complete,complete,registrationDisabled:true}) }
   if(req.method==='POST' && path==='/api/setup') {
-    const current=await supa(rest('admin_profiles','select=user_id&limit=1'),{admin:true}); if(current.length) return send(res,409,{error:'Admin setup is already complete.'})
-    const b=await body(req); const email=String(b.email||'').trim().toLowerCase()
-    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||email.length>254||typeof b.password!=='string'||b.password.length<12) return send(res,400,{error:'Enter a valid email address and a password of at least 12 characters.'})
-    const created=await supa('/auth/v1/admin/users',{method:'POST',admin:true,body:{email,password:b.password,email_confirm:true,user_metadata:{nss_email:email}}})
-    try { await supa(rest('admin_profiles'),{method:'POST',admin:true,body:{user_id:created.id,username:email,active:true},headers:{prefer:'return=minimal'}}) }
-    catch(error) { await supa(`/auth/v1/admin/users/${created.id}`,{method:'DELETE',admin:true}).catch(()=>{}); throw error }
-    const session=await supa('/auth/v1/token?grant_type=password',{method:'POST',body:{email,password:b.password}})
-    return send(res,201,{message:'Admin account created successfully'},headersForSession(session.access_token))
+    const current=await supa(rest('admin_profiles','select=username&active=eq.true'),{admin:true})
+    if(current.some(r=>authorizedAdminEmails.has(String(r.username||'').toLowerCase()))) return send(res,409,{error:'Admin setup is already complete.'})
+    return send(res,403,{error:'Public administrator setup is disabled. Authorized accounts are managed through Supabase Auth.'})
   }
   if(req.method==='POST' && path==='/api/auth/login') {
     const b=await body(req); const email=String(b.email||'').trim().toLowerCase()
     if(!email||typeof b.password!=='string') return send(res,400,{error:'Enter your email and password.'})
     const session=await supa('/auth/v1/token?grant_type=password',{method:'POST',body:{email,password:b.password||''}})
+    const verifiedEmail=String(session.user?.email||'').toLowerCase()
+    const authorized=authorizedAdminEmails.has(email)&&verifiedEmail===email
+    if(authorized) await supa(rest('admin_profiles','on_conflict=user_id'),{method:'POST',admin:true,body:{user_id:session.user.id,username:email,active:true},headers:{prefer:'resolution=merge-duplicates,return=minimal'}})
     const profiles=await supa(rest('admin_profiles',`user_id=eq.${encodeURIComponent(session.user.id)}&active=eq.true&select=user_id`),{token:session.access_token})
-    if(!profiles.length) { await supa('/auth/v1/logout',{method:'POST',token:session.access_token}).catch(()=>{}); return send(res,403,{error:'This account is not an active NSS administrator.'}) }
-    return send(res,200,{message:'Signed in.'},headersForSession(session.access_token))
+    if(!authorized||!profiles.length) { await supa('/auth/v1/logout',{method:'POST',token:session.access_token}).catch(()=>{}); return send(res,403,{error:'This account is not one of the two authorized NSS administrators.'}) }
+    return send(res,200,{message:'Signed in.',role:email===officialAdminEmail?'Official NSS Administrator':'Website Maintainer / Developer'},headersForSession(session.access_token))
   }
   if(req.method==='POST' && path==='/api/auth/logout') { const token=tokenFrom(req); if(token) await supa('/auth/v1/logout',{method:'POST',token}).catch(()=>{}); return send(res,200,{message:'Signed out.'},{'set-cookie':`${cookieName}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0${process.env.NODE_ENV==='production'?'; Secure':''}`}) }
   if(req.method==='GET' && path==='/api/public/site') {
@@ -86,8 +103,40 @@ const server=createServer(async(req,res)=>{
     const match=path.match(/^\/api\/admin\/records\/([^/]+)(?:\/([^/]+))?$/)
     if(match) { const [,collection,id]=match; if(!collections.includes(collection))return send(res,404,{error:'Unknown collection.'});
       if(req.method==='GET')return send(res,200,(await recordsFor(token,true))[collection])
-      if(req.method==='POST'||req.method==='PUT') { const b=await body(req); const sessionId=b.session; delete b.session; const s=sessionId ? await supa(rest('academic_sessions',`select=id&id=eq.${encodeURIComponent(sessionId)}&active=eq.true&limit=1`),{token}) : await supa(rest('academic_sessions','select=id&is_current=eq.true&active=eq.true&limit=1'),{token}); if(!s.length)return send(res,400,{error:'Choose an active academic session.'}); const data={...b}; delete data.order; const row={id:id||randomUUID(),collection,session_id:s[0].id,data,position:Number(b.order||0),published:b.published!==false,active:b.active!==false}; const pathRest=rest('cms_records',id?`id=eq.${encodeURIComponent(id)}`:''); const saved=await supa(pathRest,{method:id?'PATCH':'POST',token,body:row,headers:{prefer:'return=representation'}}); const r=saved[0]; if(!r)return send(res,404,{error:'Record not found.'}); return send(res,id?200:201,{id:r.id,...r.data,session:r.session_id,order:r.position,published:r.published,active:r.active}) }
-      if(req.method==='DELETE'&&id) { await supa(rest('cms_records',`id=eq.${encodeURIComponent(id)}&collection=eq.${collection}`),{method:'DELETE',token,headers:{prefer:'return=minimal'}}); return send(res,200,{message:'Record deleted.'}) }
+      if(req.method==='POST'||req.method==='PUT') {
+        const b=await body(req); const sessionId=b.session; delete b.session
+        const existing=id?(await supa(rest('cms_records',`id=eq.${encodeURIComponent(id)}&collection=eq.${encodeURIComponent(collection)}&select=id,collection,session_id,data,position,published,active`),{token}))[0]:null
+        if(id&&!existing)return send(res,404,{error:'Record not found.'})
+        const protectedPrimary=isPrimaryDeveloper(existing)
+        if(collection==='developers'&&!protectedPrimary&&(b.name==='Rutuja Belokar'||b.primary===true)) {
+          if(id)return send(res,409,{error:'The primary developer record is protected and cannot be replaced.'})
+          const primaryRows=await supa(rest('cms_records',`select=id&collection=eq.developers&data->>primary=eq.true&limit=1`),{token})
+          if(primaryRows.length)return send(res,409,{error:'The primary developer record already exists and cannot be replaced.'})
+          if(b.name!=='Rutuja Belokar'||b.primary!==true)return send(res,400,{error:'Invalid primary developer record.'})
+        }
+        let sessionRecord=null
+        if(collection!=='developers') {
+          const sessionsForRecord=protectedPrimary?[{id:existing.session_id}]:sessionId?await supa(rest('academic_sessions',`select=id&id=eq.${encodeURIComponent(sessionId)}&active=eq.true&limit=1`),{token}):await supa(rest('academic_sessions','select=id&is_current=eq.true&active=eq.true&limit=1'),{token})
+          if(!sessionsForRecord.length)return send(res,400,{error:'Choose an active academic session.'})
+          sessionRecord=sessionsForRecord[0]
+        }
+        const data={...b}; delete data.order
+        if(collection==='developers')delete data.photo
+        const row={id:id||randomUUID(),collection,session_id:sessionRecord?.id??null,data,position:Number(b.order||0),published:b.published!==false,active:b.active!==false}
+        if(protectedPrimary){row.data.name=existing.data.name;row.data.primary=true;row.session_id=null;row.active=true;row.published=true;row.data.active=true;}
+        if(collection==='developers')row.session_id=null
+        const pathRest=rest('cms_records',id?`id=eq.${encodeURIComponent(id)}`:'')
+        const saved=await supa(pathRest,{method:id?'PATCH':'POST',token,body:row,headers:{prefer:'return=representation'}})
+        const r=saved[0]; if(!r)return send(res,404,{error:'Record not found.'})
+        return send(res,id?200:201,{id:r.id,...r.data,session:r.session_id,order:r.position,published:r.published,active:r.active})
+      }
+      if(req.method==='DELETE'&&id) {
+        const existing=(await supa(rest('cms_records',`id=eq.${encodeURIComponent(id)}&collection=eq.${encodeURIComponent(collection)}&select=id,collection,data`),{token}))[0]
+        if(!existing)return send(res,404,{error:'Record not found.'})
+        if(isPrimaryDeveloper(existing))return send(res,403,{error:'Rutuja Belokar is a protected primary developer and cannot be deleted.'})
+        await supa(rest('cms_records',`id=eq.${encodeURIComponent(id)}&collection=eq.${encodeURIComponent(collection)}`),{method:'DELETE',token,headers:{prefer:'return=minimal'}})
+        return send(res,200,{message:'Record deleted.'})
+      }
     }
     return send(res,404,{error:'Admin API route not found.'})
   }

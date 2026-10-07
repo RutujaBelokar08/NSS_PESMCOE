@@ -282,8 +282,58 @@ function HomePage() {
             </div>
           </div>
         </section>
+
+        <DeveloperSection />
       </main>
     </>
+  )
+}
+
+function DeveloperSection() {
+  const { site } = useCms()
+  const cmsDevelopers = (site?.collections?.developers || []).filter((member: any) => member.active !== false)
+  const rutuja = cmsDevelopers.find((member: any) => member.primary === true || member.name === 'Rutuja Belokar')
+  const rutujaDefaults = {
+        role: 'Website Developer & Digital Management',
+        department: 'B.Tech Information Technology',
+        institution: 'P.E.S. Modern College of Engineering, Pune',
+        description: 'Designed and developed the NSS PESMCOE website, including its content management system, digital content organization, and website maintenance.',
+        linkedin: 'https://www.linkedin.com/in/rutuja-belokar',
+        github: 'https://github.com/RutujaBelokar08'
+      }
+  const developers = [{
+        ...rutujaDefaults,
+        ...(rutuja || {}),
+        name: 'Rutuja Belokar'
+      }, ...cmsDevelopers.filter((member: any) => member !== rutuja && member.primary !== true && member.name !== 'Rutuja Belokar')]
+
+  return (
+    <section id="developers" className="mx-auto max-w-7xl scroll-mt-24 px-4 pb-16 pt-10 sm:px-6 lg:px-8">
+      <div className="border-t border-[rgba(23,28,34,0.1)] pt-10">
+        <p className="editorial-kicker">Website credits</p>
+        <h2 className="editorial-subheading">MEET THE DEVELOPERS</h2>
+        <p className="mt-3 max-w-xl text-sm leading-6 text-[#5f5c59]">Built with dedication to support NSS PESMCOE’s digital presence.</p>
+        <div className="mt-7 grid gap-5 md:grid-cols-2">
+          {developers.map((developer: any, index: number) => (
+            <article key={developer.id || developer.name || index} className="flex min-w-0 flex-col border border-[rgba(23,28,34,0.1)] bg-[#f9f5f2] p-5 sm:p-6">
+              <div className="flex items-start gap-4">
+                <div className="min-w-0">
+                  <h3 className="break-words text-xl font-bold text-[#171c22]">{developer.name}</h3>
+                  <p className="mt-2 text-sm font-semibold text-[#b11d2e]">{developer.role || developer.position}</p>
+                </div>
+                <div className="ml-auto flex shrink-0 gap-2">
+                  {developer.linkedin && <a href={developer.linkedin} target="_blank" rel="noreferrer" aria-label={`LinkedIn profile of ${developer.name}`} className="flex h-9 w-9 items-center justify-center border border-[#d6cec7] text-[#171c22] transition-colors hover:border-[#b11d2e] hover:text-[#b11d2e]"><svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.03-3.04-1.85-3.04-1.85 0-2.13 1.44-2.13 2.94v5.67H9.35V9h3.42v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.26 2.37 4.26 5.46v6.28ZM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12ZM7.12 20.45H3.56V9h3.56v11.45ZM22.22 0H1.77C.79 0 0 .77 0 1.72v20.56C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.72V1.72C24 .77 23.2 0 22.22 0Z" /></svg></a>}
+                  {developer.github && <a href={developer.github} target="_blank" rel="noreferrer" aria-label={`GitHub profile of ${developer.name}`} className="flex h-9 w-9 items-center justify-center border border-[#d6cec7] text-[#171c22] transition-colors hover:border-[#b11d2e] hover:text-[#b11d2e]"><svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true"><path d="M12 .9a11.1 11.1 0 0 0-3.51 21.63c.56.1.76-.24.76-.54v-2.08c-3.1.67-3.75-1.32-3.75-1.32-.51-1.29-1.24-1.63-1.24-1.63-1.01-.69.08-.68.08-.68 1.12.08 1.7 1.15 1.7 1.15.99 1.69 2.6 1.2 3.23.91.1-.71.39-1.2.7-1.48-2.47-.28-5.07-1.24-5.07-5.52 0-1.22.44-2.22 1.15-3-.12-.28-.5-1.42.11-2.96 0 0 .94-.3 3.05 1.15a10.6 10.6 0 0 1 5.55 0c2.12-1.45 3.05-1.15 3.05-1.15.61 1.54.23 2.68.11 2.96.72.78 1.15 1.78 1.15 3 0 4.29-2.6 5.24-5.08 5.51.4.35.75 1.02.75 2.06v3.06c0 .3.2.65.77.54A11.1 11.1 0 0 0 12 .9Z" /></svg></a>}
+                </div>
+              </div>
+              {developer.department && <p className="mt-3 text-sm text-[#5f5c59]">{developer.department}</p>}
+              {developer.institution && <p className="mt-1 text-sm text-[#5f5c59]">{developer.institution}</p>}
+              {developer.description && <p className="mt-4 text-sm leading-6 text-[#5f5c59]">{developer.description}</p>}
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
   )
 }
 

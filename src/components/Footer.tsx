@@ -26,30 +26,30 @@ export function Footer() {
   const socialLinks = (customFooterSocials.length ? customFooterSocials : fallbackSocials).map((link) => ({ ...link, icon: link.label.toLowerCase() === 'youtube' ? Play : Globe }))
 
   return (
-    <footer className="mt-20 border-t border-[rgba(255,255,255,0.08)] bg-[#171c22] text-[#f0eae5]">
-      <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-        <div className="grid gap-10 lg:grid-cols-[1.2fr_0.8fr_0.55fr_1fr]">
+    <footer className="mt-12 border-t border-[rgba(255,255,255,0.08)] bg-[#171c22] text-[#f0eae5]">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="grid min-w-0 gap-6 sm:grid-cols-2 lg:grid-cols-[1.2fr_0.8fr_0.7fr_1fr] lg:gap-8">
           <div>
             <div className="flex items-center gap-3">
-              <img src={siteImages.nssLogo} alt="National Service Scheme" className="h-12 w-12 shrink-0 rounded-full bg-white p-1 object-contain" />
+              <img src={siteImages.nssLogo} alt="National Service Scheme" className="h-10 w-10 shrink-0 rounded-full bg-white p-1 object-contain" />
               <div>
                 <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#e5a2ac]">NSS</div>
               <div className="text-sm font-medium text-[#f7f2ee]">{footer.footerTagline || ''}</div>
               </div>
             </div>
-            <p className="mt-5 max-w-sm text-sm leading-7 text-[#d8d2ce]">
+            <p className="mt-3 max-w-sm text-sm leading-6 text-[#d8d2ce]">
               {footer.footerDescription || ''}
             </p>
-            {footer.footerContactText ? <p className="mt-3 max-w-sm whitespace-pre-line text-sm leading-7 text-[#d8d2ce]">{footer.footerContactText}</p> : null}
+            {footer.footerContactText ? <p className="mt-2 max-w-sm whitespace-pre-line break-words text-sm leading-6 text-[#d8d2ce]">{footer.footerContactText}</p> : null}
           </div>
 
           <div className="flex items-start lg:justify-center">
-            <img src={siteImages.pesmcoeLogo} alt="Progressive Education Society's Modern College of Engineering" className="h-28 w-40 object-contain" loading="lazy" />
+            <img src={siteImages.pesmcoeLogo} alt="Progressive Education Society's Modern College of Engineering" className="h-20 w-36 object-contain" loading="lazy" />
           </div>
 
           <div>
-            <h3 className="text-lg font-semibold text-white">Quick Links</h3>
-            <ul className="mt-5 space-y-3 text-sm text-[#d8d2ce]">
+            <h3 className="text-base font-semibold text-white">Quick Links</h3>
+            <ul className="mt-3 space-y-2 text-sm text-[#d8d2ce]">
               {quickLinks.map((link) => (
                 <li key={link.to}>
                   <Link to={link.to} className="transition-colors hover:text-[#ffb0b8]">
@@ -57,16 +57,17 @@ export function Footer() {
                   </Link>
                 </li>
               ))}
+              <li><Link to="/#developers" className="transition-colors hover:text-[#ffb0b8]">Meet the Developers</Link></li>
             </ul>
           </div>
 
           <div>
-            <h3 className="text-lg font-semibold text-white">Contact</h3>
-            <div className="mt-5 space-y-3 text-sm text-[#d8d2ce]">
+            <h3 className="text-base font-semibold text-white">Contact</h3>
+            <div className="mt-3 min-w-0 space-y-2 text-sm text-[#d8d2ce] [&_a]:break-all">
               {footer.address ? (
                 <div className="flex items-start gap-3">
                   <MapPin className="mt-0.5 h-4 w-4 text-[#e6b0b7]" />
-                  <span>{footer.address}</span>
+                  <span className="whitespace-pre-line break-words">{footer.address}</span>
                 </div>
               ) : null}
               {footer.email ? (
@@ -83,7 +84,7 @@ export function Footer() {
               ) : null}
             </div>
             {socialLinks.length > 0 ? (
-              <div className="mt-5 flex gap-3">
+              <div className="mt-4 flex flex-wrap gap-2">
                 {socialLinks.map(({ url, label, icon: Icon }) => (
                   <a
                     key={label}
@@ -91,7 +92,7 @@ export function Footer() {
                     target="_blank"
                     rel="noreferrer"
                     aria-label={label}
-                    className="flex h-10 w-10 items-center justify-center border border-[#2d343b] text-[#f4efe8] transition-colors hover:border-[#d16c79] hover:text-[#ffb0b8]"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center border border-[#2d343b] text-[#f4efe8] transition-colors hover:border-[#d16c79] hover:text-[#ffb0b8]"
                   >
                     <Icon size={16} />
                   </a>
@@ -101,7 +102,7 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="mt-10 flex flex-col gap-4 border-t border-[#2a3037] pt-6 text-sm text-[#c8c0bb] sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-6 flex min-w-0 flex-col gap-2 border-t border-[#2a3037] pt-4 text-xs text-[#c8c0bb] sm:flex-row sm:items-center sm:justify-between">
           <div>{footer.footerCopyright || ''}</div>
           <div>{footer.footerTagline || ''}</div>
         </div>

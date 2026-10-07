@@ -22,7 +22,7 @@ export function Hero() {
             </p>
             <h1 className="editorial-heading text-white">
               Not Me,
-              <span className="mt-2 block text-[#d6b1b7]">But You.</span>
+              <span className="mt-2 block text-[#f4efe8] [text-shadow:0_2px_18px_rgba(0,0,0,0.55)]">But You.</span>
             </h1>
             <p className="mt-6 max-w-xl text-base leading-7 text-[#e8e2dc] sm:text-lg">
               Serving the community. Developing responsible citizens. Creating meaningful impact through action, empathy and leadership.
